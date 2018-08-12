@@ -1,0 +1,4 @@
+.*
+*.d.ts
+tsconfig.json
+tslint.json

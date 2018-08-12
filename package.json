@@ -1,0 +1,28 @@
+{
+  "name": "es-serve",
+  "version": "0.5.0",
+  "description": "Server for modern SPA",
+  "author": "phaux <phaux4@gmail.com>",
+  "license": "ISC",
+  "repository": "phaux/es-serve",
+  "keywords": [
+    "esnext",
+    "server",
+    "spa"
+  ],
+  "bin": "index.js",
+  "scripts": {
+    "test": "eslint . && tsc -p ."
+  },
+  "devDependencies": {
+    "@types/express": "^4.11.1",
+    "@types/node": "^9.6.4",
+    "eslint": "^4.19.1",
+    "typescript": "^2.8.1"
+  },
+  "dependencies": {
+    "any-cfg": "^0.6.1",
+    "express": "^4.16.3",
+    "string-replace-async": "^1.2.1"
+  }
+}
