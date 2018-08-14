@@ -15,6 +15,7 @@
     "test": "eslint . && tsc -p ."
   },
   "devDependencies": {
+    "@types/chokidar": "^1.7.5",
     "@types/express": "^4.11.1",
     "@types/node": "^9.6.4",
     "eslint": "^4.19.1",
@@ -22,7 +23,8 @@
   },
   "dependencies": {
     "any-cfg": "^0.6.1",
-    "express": "^4.16.3",
+    "chokidar": "^2.0.4",
+    "mime": "^2.3.1",
     "string-replace-async": "^1.2.1"
   }
 }

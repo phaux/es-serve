@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /// <reference path="./types.d.ts" />
-
-const app = require('express')()
+const http = require('http')
 const fs = require('fs')
 const {join, relative, dirname, resolve} = require('path').posix
 const {load} = require('any-cfg')
 const stringReplaceAsync = require('string-replace-async')
 const {URL} = require('url')
+const {parse: parseUrl} = require('url')
+const mime = require('mime')
 
 const {
   results: {
@@ -18,6 +19,8 @@ const {
     MODULE_DIR = 'node_modules',
     GLOBALS,
     VERBOSE,
+    WATCH,
+    WATCH_IGNORE = 'node_modules;.*',
   },
   rest: [CWD = '.'],
 } = load({
@@ -31,6 +34,8 @@ const {
     MODULE_DIR: {type: 'string', short: 'm'},
     GLOBALS: {type: 'string', short: 'g'},
     VERBOSE: {type: 'boolean', short: 'v'},
+    WATCH: {type: 'string', short: 'w'},
+    WATCH_IGNORE: {type: 'string', short: 'W'},
   },
 })
 
@@ -138,7 +143,6 @@ const convertJs = async reqPath => {
         // add extension if missing
         const exists = !!await stat(impPathFull)
         if (!exists && await stat(`${impPathFull}.js`) == 'f') impPath += '.js'
-        else if (!exists && await stat(`${impPathFull}.jsm`) == 'f') impPath += '.jsm'
         else if (!exists && await stat(`${impPathFull}.mjs`) == 'f') impPath += '.mjs'
 
       }
@@ -165,47 +169,71 @@ const convertHtml = async reqPath => {
 
 const rootIndexStat = stat(join(ROOT, 'index.html'))
 
-app.use(async ({path}, res, next) => {
+const watch = WATCH == null ? null : require('chokidar').watch(WATCH, {
+  persistent: true,
+  cwd: ROOT,
+  ignored: WATCH_IGNORE.split(';'),
+  ignoreInitial: true,
+})
+
+const server = http.createServer(async (req, res) => {
 
   try {
 
+    // only handle GET requests
+    if (req.method != 'GET') {
+      res.statusCode = 405
+      return res.end()
+    }
+
+    const path = parseUrl(`${req.url}`).pathname || '/'
     const type = await stat(join(ROOT, path))
 
     // serve global config from command arg
     if (path == '/globals.json' && GLOBALS != null) {
-      res.type('json')
+      res.setHeader('content-type', 'application/json')
       if (VERBOSE) console.log('200', path, '(globals)')
-      res.send(globals)
+      return res.end(JSON.stringify(globals, undefined, 2))
+    }
+
+
+    if (path == '/_dev_watch_events') {
+      res.setHeader('content-type', 'text/event-stream')
+      /**
+       * @param {string} ev
+       * @param {string} file
+       * @return {void}
+       */
+      const listener = (ev, file) => {
+        if (!['add', 'change'].includes(ev)) return
+        console.log(ev, file)
+        res.write(`data: ${file}\n\n`)
+      }
+      watch.addListener('all', listener)
+      req.on('close', () => watch.removeListener('all', listener))
+      return
     }
 
     // process regular files
-    else if (type == 'f') {
-      if (path.match(/\.m?jsm?$/)) {
-        res.type('js')
+    if (type == 'f') {
+
+      if (path.match(/\.m?js$/)) {
+        res.setHeader('content-type', 'text/javascript')
         const data = await convertJs(path)
         if (VERBOSE) console.log('200', path, '(js)')
-        res.send(data)
+        return res.end(data)
       }
-      else {
-        if (VERBOSE) console.log('200', path)
-        res.sendFile(join(ROOT, path))
-      }
+
+      if (VERBOSE) console.log('200', path)
+      const mimetype = mime.getType(path)
+      if (mimetype != null) res.setHeader('content-type', mimetype)
+      return fs.createReadStream(join(ROOT, path)).pipe(res)
+
     }
 
-    // per-directory index fallback
-    // TODO make option for this
-    // else if (type == 'd') {
-    //   if (await stat(join(ROOT, path, 'index.html'))) {
-    //     res.type('html')
-    //     const data = await convertHtml(join(path, 'index.html'))
-    //     if (VERBOSE) console.log('200', path)
-    //     res.send(data)
-    //   }
-    //   else res.sendStatus(403)
-    // }
-
+    // TODO include refresh script
     // app index fallback
-    else if (
+    if (
       // only when enabled
       INDEX_FALLBACK
       // if not in modules dir
@@ -215,26 +243,31 @@ app.use(async ({path}, res, next) => {
       // only if there's an index.html in root
       && await rootIndexStat
     ) {
-      res.type('html')
+      res.setHeader('content-type', 'text/html')
       const data = await convertHtml('index.html')
       if (VERBOSE) console.log('200', path, '(index)')
-      res.send(data)
+      return res.end(data)
     }
 
-    else if (type == 'd') {
+    if (type == 'd') {
       console.log('403', path, '(dir)')
-      res.sendStatus(403)
+      res.statusCode = 403
+      return res.end()
     }
-    else {
-      console.log('404', path)
-      res.sendStatus(404)
-    }
+
+    console.log('404', path)
+    res.statusCode = 404
+    return res.end()
 
   }
-  catch (err) { return next(err) }
+  catch (err) {
+    console.error('500', err)
+    res.statusCode = 500
+    res.end(err.message)
+  }
 
 })
 
-app.listen(PORT)
-
-console.log(`Server running at http://localhost:${PORT}`)
+server.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`)
+})
