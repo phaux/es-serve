@@ -3,39 +3,37 @@
 const http = require('http')
 const fs = require('fs')
 const {join, relative, dirname, resolve} = require('path').posix
-const {load} = require('any-cfg')
+const {parse} = require('./node_modules/any-cfg/lib/index.js')
 const stringReplaceAsync = require('string-replace-async')
 const {URL} = require('url')
 const {parse: parseUrl} = require('url')
 const mime = require('mime')
 
 const {
-  results: {
-    PORT = 8000,
-    BASE_HREF,
-    INDEX_FALLBACK,
-    REWRITE_IMPORTS,
-    MODULE_MAP = '',
-    MODULE_DIR = 'node_modules',
-    GLOBALS,
-    VERBOSE,
-    WATCH,
-    WATCH_IGNORE = 'node_modules;.*',
-  },
-  rest: [CWD = '.'],
-} = load({
+  PORT = 8000,
+  BASE_HREF,
+  INDEX_FALLBACK,
+  REWRITE_IMPORTS,
+  MODULE_MAP,
+  MODULE_DIR = 'node_modules',
+  GLOBALS,
+  VERBOSE,
+  WATCH,
+  WATCH_IGNORE,
+  _: [CWD = '.'],
+} = parse({
   envPrefix: 'APP_',
   options: {
     PORT: {type: 'number', short: 'p'},
-    BASE_HREF: {type: 'string', short: 'b'},
-    INDEX_FALLBACK: {type: 'boolean', short: 'i'},
-    REWRITE_IMPORTS: {type: 'boolean', short: 'r'},
-    MODULE_MAP: {type: 'string', short: 'M'},
-    MODULE_DIR: {type: 'string', short: 'm'},
-    GLOBALS: {type: 'string', short: 'g'},
+    BASE_HREF: {type: 'string'},
+    INDEX_FALLBACK: {type: 'boolean'},
+    REWRITE_IMPORTS: {type: 'boolean'},
+    MODULE_MAP: {type: 'map', short: 'm'},
+    MODULE_DIR: {type: 'string'},
+    GLOBALS: {type: 'map', short: 'g'},
     VERBOSE: {type: 'boolean', short: 'v'},
     WATCH: {type: 'string', short: 'w'},
-    WATCH_IGNORE: {type: 'string', short: 'W'},
+    WATCH_IGNORE: {type: 'list', short: 'i'},
   },
 })
 
@@ -45,21 +43,8 @@ const {
  */
 const escRegex = s => s.replace(/[.?*+^$[\]\\(){}|-]/g, '\\$&')
 
-const modMap = new Map(
-  `${MODULE_MAP}`
-    .split(/[,;]/)
-    .map(param => /** @type {[string, string]} */ (param.split('=', 2)))
-)
-
 const ROOT = resolve(CWD)
 console.log(`Root path is: ${ROOT}`)
-
-/** @type {{[param: string]: string}} */
-const globals = `${GLOBALS || ''}`
-  .split(/[,;]/)
-  .map(param => param.split('=', 2))
-  .filter(([k]) => !!k)
-  .reduce((o, [k, v]) => Object.assign(o, {[k]: v}), {})
 
 /**
  * @param {string} path
@@ -107,7 +92,7 @@ const convertJs = async reqPath => {
       // rewrite bare modules
       if (!valid) {
         // apply module mapping
-        for (const [from, to] of modMap) {
+        for (const [from, to] of Object.entries(MODULE_MAP)) {
           const regex = new RegExp(`^${escRegex(from)}(/|$)`)
           const match = regex.exec(impPath)
           if (!match) continue
@@ -154,6 +139,13 @@ const convertJs = async reqPath => {
   return src
 }
 
+const watch = WATCH == null ? null : require('chokidar').watch(WATCH, {
+  persistent: true,
+  cwd: ROOT,
+  ignored: ['.git', ...WATCH_IGNORE],
+  ignoreInitial: true,
+})
+
 /**
  * @param {string} reqPath
  * @return {Promise<string>}
@@ -164,17 +156,22 @@ const convertHtml = async reqPath => {
     /<base\s+href=["'/._a-z0-9-]+\s*>/i,
     `<base href="${BASE_HREF}">`
   )
+  if (watch != null) src = src.replace(
+    /<head>/i, '<head>'
+    + `<script>(() => {
+      let t;
+      new EventSource("/_dev_watch_events")
+      .addEventListener("message", e => {
+        console.warn("CHANGE:", e.data)
+        if(t!=null)clearTimeout(t);
+        t=setTimeout(()=>location.reload(),1000);
+      });
+    })();</script>`.replace(/\s+/m, ' ')
+  )
   return src
 }
 
 const rootIndexStat = stat(join(ROOT, 'index.html'))
-
-const watch = WATCH == null ? null : require('chokidar').watch(WATCH, {
-  persistent: true,
-  cwd: ROOT,
-  ignored: WATCH_IGNORE.split(';'),
-  ignoreInitial: true,
-})
 
 const server = http.createServer(async (req, res) => {
 
@@ -193,11 +190,11 @@ const server = http.createServer(async (req, res) => {
     if (path == '/globals.json' && GLOBALS != null) {
       res.setHeader('content-type', 'application/json')
       if (VERBOSE) console.log('200', path, '(globals)')
-      return res.end(JSON.stringify(globals, undefined, 2))
+      return res.end(JSON.stringify(GLOBALS, undefined, 2))
     }
 
 
-    if (path == '/_dev_watch_events') {
+    if (watch != null && path == '/_dev_watch_events') {
       res.setHeader('content-type', 'text/event-stream')
       /**
        * @param {string} ev
@@ -206,7 +203,7 @@ const server = http.createServer(async (req, res) => {
        */
       const listener = (ev, file) => {
         if (!['add', 'change'].includes(ev)) return
-        console.log(ev, file)
+        if (VERBOSE) console.log('CHANGE', `/${file}`)
         res.write(`data: ${file}\n\n`)
       }
       watch.addListener('all', listener)
@@ -231,7 +228,6 @@ const server = http.createServer(async (req, res) => {
 
     }
 
-    // TODO include refresh script
     // app index fallback
     if (
       // only when enabled
