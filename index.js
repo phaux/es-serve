@@ -3,7 +3,7 @@
 const http = require('http')
 const fs = require('fs')
 const {join, relative, dirname, resolve} = require('path').posix
-const {parse} = require('./node_modules/any-cfg/lib/index.js')
+const {parse} = require('any-cfg')
 const stringReplaceAsync = require('string-replace-async')
 const {URL} = require('url')
 const {parse: parseUrl} = require('url')
