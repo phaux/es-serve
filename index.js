@@ -66,7 +66,7 @@ const read = path => new Promise((resolve, reject) =>
 )
 
 const impRgx =
-  /\bimport\b\s*(?:([*{,}$\w\s]+?)\s*\bfrom\b)?\s*(['"`])([/@.-\w]+)\2/g
+  /\b(import|export)\b\s*(?:([*{,}$\w\s]+?)\s*\bfrom\b)?\s*(['"`])([/@.-\w]+)\3/gm
 
 // TODO create cache for converted files
 /**
@@ -79,7 +79,7 @@ const convertJs = async reqPath => {
   let src = await read(reqPathFull)
 
   if (REWRITE_IMPORTS) {
-    src = await stringReplaceAsync(src, impRgx, async (ln, vars, q, impPath) => {
+    src = await stringReplaceAsync(src, impRgx, async (ln, act, vars, q, impPath) => {
 
       // valid imports are URLs or relative paths
       const valid = (() => {
@@ -132,7 +132,7 @@ const convertJs = async reqPath => {
 
       }
 
-      return `import ${vars ? vars + ' from ' : ''}${q}${impPath}${q}`
+      return `${act} ${vars ? vars + ' from ' : ''}${q}${impPath}${q}`
 
     })
   }
