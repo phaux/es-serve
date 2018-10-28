@@ -4,42 +4,40 @@ Simple web server for modern single page apps.
 
 Usage: `es-serve [path]`
 
-Example:
+**Options:**
 
-```sh
-es-serve www --index-fallback --rewrite-imports
-```
+*   `--port/-p number`, `APP_PORT=number` -
+    Server port
 
-## Options
+*   `--base-href string`, `APP_BASE_HREF=string` -
+    Rewrite the value of `<base href=…>` element
 
-- `--port`, `-p`, `APP_PORT` **(number)** - Server port
-- `--base-href`, `APP_BASE_HREF` **(string)** -
-  Rewrites the value of `<base href=…>` element
-- `--index-fallback`, `APP_INDEX_FALLBACK` **(boolean)** -
-  Enables serving the root `index.html` for every route (instead of 404)
-- `--rewrite-imports`, `APP_REWRITE_IMPORTS` **(boolean)** -
-  Rewrites import statements in JS files:
-  Resolves bare module imports and adds file extension if missing.
-- `--module-dir`, `APP_MODULE_DIR` **(string)** -
-  When import rewriting is enabled:
-  Specifies module directory for resolving bare module names.
-  (default: `node_modules`)
-- `--module-map`, `-m`, `APP_MODULE_MAP` **(map)** -
-  When import rewriting is enabled:
-  Rewrites bare module names.
-  e.g. `es-serve -m react=preact-compat -m react-dom=preact-compat`
-  or `env APP_MODULE_MAP="react=preact-compat,react-dom=preact-compat" es-serve`
-- `--globals`, `-g`, `APP_GLOBALS` **(map)** -
-  Enables serving a config JSON file at `/globals.json`.
-  The format is `es-serve -g var1=foo -g var2=bar`
-  or `env APP_GLOBALS="var1=foo,var2=bar" es-serve`
-  and the result would be `{"var1": "foo", "var2": "bar"}`
-- `--watch`, `-w` **(list)** -
-  Enables watch mode. Listens for file changes and injects a script which reloads page.
-  Multiple folders or globs can be specified.
-- `--watch-ignore`, `-i` **(list)** -
-  List of files or globs to ignore.
-  Ignoring `node_modules` is recommended for performance.
-  The `.git` folder is always ignored.
-- `--verbose`, `-v` **(boolean)** -
-  Verbose logging mode
+*   `--(no-)index-fallback`, `APP_INDEX_FALLBACK=boolean` -
+    Serve index.html for unknown routes instead of 404
+
+*   `--(no-)rewrite-imports`, `APP_REWRITE_IMPORTS=boolean` -
+    Make bare module imports in JS just work™
+
+*   `--module-map/-m key=string ...`, `APP_MODULE_MAP=key=string,...` -
+    Rewrite module names
+
+*   `--module-dir string`, `APP_MODULE_DIR=string` -
+    Module directory. Default: `node_modules`
+
+*   `--globals/-g key=string ...`, `APP_GLOBALS=key=string,...` -
+    Serve some variables as `/globals.json`
+
+*   `--(no-)verbose/-v`, `APP_VERBOSE=boolean` -
+    Verbose logging mode
+
+*   `--watch/-w string`, `APP_WATCH=string` -
+    Enables watch mode and watches provided path
+
+*   `--watch-ignore/-i string ...`, `APP_WATCH_IGNORE=string,...` -
+    Files to ignore when watching
+
+*   `--(no-)help/-h`, `APP_HELP=boolean` -
+    Show help
+
+Options can be provided via `server.json` or `server.toml` config file.
+Key names should be in lower_snake_case.

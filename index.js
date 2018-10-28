@@ -3,39 +3,52 @@
 const http = require('http')
 const fs = require('fs')
 const {join, relative, dirname, resolve} = require('path').posix
-const {parse} = require('any-cfg')
+const {config} = require('any-cfg')
 const stringReplaceAsync = require('string-replace-async')
 const {URL} = require('url')
 const {parse: parseUrl} = require('url')
 const mime = require('mime')
+
+const help = `
+Simple web server for modern single page apps.
+
+Usage: \`es-serve [path]\`
+`
+
+const cfg = config({envPrefix: 'APP_', configFile: 'server', help})
+  .options({
+    PORT: {type: 'number', short: 'p', help: 'Server port'},
+    BASE_HREF: {type: 'string', help: 'Rewrite the value of `<base href=…>` element'},
+    INDEX_FALLBACK: {type: 'boolean', help: 'Serve index.html for unknown routes instead of 404'},
+    REWRITE_IMPORTS: {type: 'boolean', help: 'Make bare module imports in JS just work™'},
+    MODULE_MAP: {type: 'map', short: 'm', help: 'Rewrite module names'},
+    MODULE_DIR: {type: 'string', help: 'Module directory. Default: `node_modules`'},
+    GLOBALS: {type: 'map', short: 'g', help: 'Serve some variables as `/globals.json`'},
+    VERBOSE: {type: 'boolean', short: 'v', help: 'Verbose logging mode'},
+    WATCH: {type: 'string', short: 'w', help: 'Enables watch mode and watches provided path'},
+    WATCH_IGNORE: {type: 'list', short: 'i', help: 'Files to ignore when watching'},
+    HELP: {type: 'boolean', short: 'h', help: 'Show help'},
+  })
 
 const {
   PORT = 8000,
   BASE_HREF,
   INDEX_FALLBACK,
   REWRITE_IMPORTS,
-  MODULE_MAP,
+  MODULE_MAP = {},
   MODULE_DIR = 'node_modules',
   GLOBALS,
   VERBOSE,
   WATCH,
-  WATCH_IGNORE,
+  WATCH_IGNORE = [],
+  HELP,
   _: [CWD = '.'],
-} = parse({
-  envPrefix: 'APP_',
-  options: {
-    PORT: {type: 'number', short: 'p'},
-    BASE_HREF: {type: 'string'},
-    INDEX_FALLBACK: {type: 'boolean'},
-    REWRITE_IMPORTS: {type: 'boolean'},
-    MODULE_MAP: {type: 'map', short: 'm'},
-    MODULE_DIR: {type: 'string'},
-    GLOBALS: {type: 'map', short: 'g'},
-    VERBOSE: {type: 'boolean', short: 'v'},
-    WATCH: {type: 'string', short: 'w'},
-    WATCH_IGNORE: {type: 'list', short: 'i'},
-  },
-})
+} = cfg.parse()
+
+if (HELP) {
+  cfg.help()
+  process.exit(0)
+}
 
 /**
  * @param {string} s
