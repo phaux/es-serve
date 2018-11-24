@@ -1,4 +1,4 @@
 .*
-*.d.ts
+/types
 tsconfig.json
 tslint.json

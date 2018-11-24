@@ -5,13 +5,16 @@
     "lib": ["esnext"],
     "noEmit": true,
     "moduleResolution": "node",
+    "skipLibCheck": true,
     "strict": true,
-    "target": "esnext"
+    "target": "esnext",
+    "typeRoots": [
+      "node_modules/@types",
+      "types"
+    ]
   },
   "include": [
-    "**/*"
-  ],
-  "exclude": [
-    "node_modules"
+    "lib",
+    "types"
   ]
 }

@@ -26,7 +26,6 @@
     "key-spacing": ["error", {"mode": "minimum"}],
     "keyword-spacing": "error",
     "linebreak-style": "error",
-    "max-depth": ["warn", 5],
     "max-len": ["error", 100, 4],
     "no-caller": "error",
     "no-console": "off",
