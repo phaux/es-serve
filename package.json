@@ -1,7 +1,7 @@
 {
-  "name": "es-serve",
-  "version": "0.9.0",
-  "description": "Server for modern SPA",
+  "name": "pwa-serve",
+  "version": "0.1.0",
+  "description": "Simple web server with babel compilation on the fly",
   "author": "phaux <phaux4@gmail.com>",
   "license": "ISC",
   "repository": "phaux/es-serve",

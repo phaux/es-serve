@@ -1,43 +1,49 @@
-# ES Serve
+# PWA Serve
 
-Simple web server for modern single page apps.
+Simple web server with babel compilation on the fly. In many cases it can be used as a replacement for webpack-dev-server or similar.
 
-Usage: `es-serve [path]`
+**Example usage**
 
-**Options:**
+```sh
+pwa-serve --dir-map "dist=src" --watch "src" --watch "styles"
+```
 
-*   `--port/-p number`, `APP_PORT=number` -
-    Server port
+## Features
 
-*   `--base-href string`, `APP_BASE_HREF=string` -
-    Rewrite the value of `<base href=…>` element
+* History API fallback (serve `index.html` for unknown routes).
+* URL rewriting, useful for mapping your `dist` folder to `src`.
+* Compiling scripts on the fly with babel (with cache). Simply add babel config to your project.
+* Resolving bare imports via `babel-plugin-bare-import-rewrite` by default.
+* Watch mode and auto-refresh (like browser-sync).
 
-*   `--(no-)index-fallback`, `APP_INDEX_FALLBACK=boolean` -
-    Serve index.html for unknown routes instead of 404
+## Options
 
-*   `--(no-)rewrite-imports`, `APP_REWRITE_IMPORTS=boolean` -
-    Make bare module imports in JS just work™
+* `--port` **number** -
+  Server port (default: 8000)
 
-*   `--module-map/-m key=string ...`, `APP_MODULE_MAP=key=string,...` -
-    Rewrite module names
+* `--extensions` / `-e` **string** ... -
+  Specify additional extensions interpreted as JS (default: js, jsx, mjs, ts, tsx)
 
-*   `--module-dir string`, `APP_MODULE_DIR=string` -
-    Module directory. Default: `node_modules`
+* `--dir-map` / `-d` **key=value** ... -
+  Directory rewrite rules (e.g. `dist=src`)
 
-*   `--globals/-g key=string ...`, `APP_GLOBALS=key=string,...` -
-    Serve some variables as `/globals.json`
+* `--ignore` / `-i` **string** ... -
+  Paths which will be omitted from compiling
 
-*   `--(no-)verbose/-v`, `APP_VERBOSE=boolean` -
-    Verbose logging mode
+* `--verbose` / `-v` -
+  Verbose logging mode
 
-*   `--watch/-w string`, `APP_WATCH=string` -
-    Enables watch mode and watches provided path
+* `--watch` / `-w` **string** ... -
+  Enables watch mode and watches provided paths
 
-*   `--watch-ignore/-i string ...`, `APP_WATCH_IGNORE=string,...` -
-    Files to ignore when watching
+Options can be also provided via `server.config.json` (or `.toml`) file (format `opt_name`) or via environment variables (format `APP_OPT_NAME`)
 
-*   `--(no-)help/-h`, `APP_HELP=boolean` -
-    Show help
+## Non-goals
 
-Options can be provided via `server.json` or `server.toml` config file.
-Key names should be in lower_snake_case.
+### Asset bundling
+
+Browsers can't `import` styles nor images. If you want component-relative assets use `import.meta.url` and configure your bundler appropriately. If you need scoped CSS, use react's styled components or lit-html ``html`<style></style>` ``.
+
+### Hot module replacement
+
+Too complicated
