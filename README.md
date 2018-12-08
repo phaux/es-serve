@@ -1,5 +1,7 @@
 # PWA Serve
 
+[![npm](https://img.shields.io/npm/v/pwa-serve.svg)](https://www.npmjs.com/package/pwa-serve)
+
 Simple web server with babel compilation on the fly. In many cases it can be used as a replacement for webpack-dev-server or similar.
 
 **Example usage**
