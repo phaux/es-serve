@@ -1,6 +1,6 @@
 {
   "name": "pwa-serve",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Simple web server with babel compilation on the fly",
   "author": "phaux <phaux4@gmail.com>",
   "license": "ISC",
